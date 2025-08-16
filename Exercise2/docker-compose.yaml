@@ -1,0 +1,50 @@
+version : '3.8'
+
+services:
+  database:
+     image: postgres:latest
+     container_name: postgres_db
+     environment:
+        POSTGRES_DB: E-Commerce-test
+        POSTGRES_USER: basit
+        POSTGRES_PASSWORD: bece2018
+     ports:
+        - "5532:5432"
+     volumes:
+       - postgres_data:/var/lib/postgresql/data
+     restart: unless-stopped
+     networks:
+       - e_commerce_network
+  redis:
+      image: redis:latest
+      container_name: redis_cache
+      ports:
+        - "6389:6379"
+      networks:
+        - e_commerce_network
+      restart: unless-stopped
+
+  backend:
+      build: ./NestJS-E-Commerce-Test
+      ports:
+        - "4000:4000"
+      environment:
+        DATABASE_URL: postgres://basit:bece2018@database:5432/E-Commerce-test
+        REDIS_URL: redis://redis:6379
+      depends_on:
+        - database
+        - redis
+      networks:
+        - e_commerce_network
+      restart: unless-stopped
+      command: >
+        sh -c "npx prisma generate && npx prisma migrate deploy && npm run build && npm run seed-products && npm run start:prod"
+
+
+networks:
+  e_commerce_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
